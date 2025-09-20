@@ -58,9 +58,9 @@ for i in range(8):
     log(x1, y1)
     y1 += 55
 
-pg.draw.ellipse(screen, DARK_BROWN, (560, 410, 120, 220))
+pg.draw.ellipse(screen, DARK_BROWN, (540, 390, 120, 220))
 pg.draw.ellipse(screen, LIGHT_BLUE, (550, 400, 100, 200))
-# pg.draw.line(screen, DARK_BROWN, )
+pg.draw.line(screen, DARK_BROWN, (650, 450), (800, 450))
 
 # отображаем нарисованные объекты
 pg.display.update()
