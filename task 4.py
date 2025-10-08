@@ -1,9 +1,22 @@
 import pygame as pg
+import random
+import time
 
 FPS = 60
 WIDTH, HEIGHT = 600, 500
 MINT = (230, 254, 212)
 ORANGE = (255, 150, 100)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+FIRE = (245, 112, 37)
+DARK_BROWN = (110, 7, 7)
+BROWN = (166, 13, 13)
+GREEN = (0, 204, 102)
+BLUE = (0, 128, 255)
+LIGHT_BLUE = (21, 219, 219)
+DARK_GREEN = (0, 102, 0)
+GRAY = (160, 160, 160)
+COLORS = MINT, ORANGE, WHITE, BLACK, FIRE, BROWN, GREEN, BLUE, LIGHT_BLUE, DARK_GREEN, GRAY
 
 pg.init()
 screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -14,6 +27,8 @@ clock = pg.time.Clock()
 # координаты центра круга
 x, y = WIDTH / 2, HEIGHT / 2  # координаты центра круга
 r = 30  # радиус круга
+present_color = ORANGE
+counter = 0
 pg.draw.circle(screen, ORANGE, (x, y), r)  # рисуем круг
 pg.display.update()  # обновляем окно
 
@@ -48,8 +63,13 @@ while flag_play:
         y -= 3
     if keys[pg.K_DOWN]:
         y += 3
-
+    if keys[pg.K_SPACE]:
+        counter += 1
+        if counter == 10:
+            present_color = random.choice(COLORS)
+        elif counter >= 10:
+            counter = 0
     screen.fill(MINT)  # заливаем фон, стирая предыдущий круг
-    pg.draw.circle(screen, ORANGE, (x, y), r)  # рисуем новый, сдвинутый круг
+    pg.draw.circle(screen, present_color, (x, y), r)  # рисуем новый, сдвинутый круг
 
     pg.display.update()  # обновляем окно
