@@ -1,4 +1,4 @@
-# TASK 5.1
+# TASK 4.1
 import time
 
 import pygame as pg
@@ -50,8 +50,12 @@ while flag_play:
         if not flag_pop:
             current_pos = pg.mouse.get_pos()
             print(current_pos)
-            if (x - R <= current_pos[0] <= x + R) and (y - R <= current_pos[1] <= y + R):
+            distantion = (current_pos[0] - x)**2 + (current_pos[1] - y)**2
+            distantion = distantion**0.5
+            if distantion <= R:
                 flag_pop = True
+            # if (x - R <= current_pos[0] <= x + R) and (y - R <= current_pos[1] <= y + R):
+            #     flag_pop = True
         if flag_pop:
             x, y = circ()
             print(x, y)
