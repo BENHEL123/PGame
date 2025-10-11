@@ -1,4 +1,6 @@
-#TASK 4.1
+# TASK 5.1
+import time
+
 import pygame as pg
 import random
 
@@ -18,11 +20,15 @@ clock = pg.time.Clock()
 
 def circ():
     screen.fill(PINK)
-    x = random.randint(R, WIDTH - R)
-    y = random.randint(R, HEIGHT - R)
-    pg.draw.circle(screen, ORANGE, (x, y), R)
+    x1 = random.randint(R, WIDTH - R)
+    y1 = random.randint(R, HEIGHT - R)
+    pg.draw.circle(screen, ORANGE, (x1, y1), R)
+    return x1, y1
+
+
 # если надо до цикла отобразить какие-то объекты, обновляем экран
-circ()
+x, y = circ()
+flag_pop = False
 pg.display.update()
 
 # главный цикл
@@ -39,11 +45,20 @@ while flag_play:
             break
     if not flag_play:
         break
-    if 
+    pressed = pg.mouse.get_pressed()
+    if pressed[1]:
+        if not flag_pop:
+            current_pos = pg.mouse.get_pos()
+            print(current_pos)
+            if (x - R <= current_pos[0] <= x + R) and (y - R <= current_pos[1] <= y + R):
+                flag_pop = True
+        if flag_pop:
+            x, y = circ()
+            print(x, y)
+            flag_pop = False
+
     # изменение объектов
     # ...
-
-
 
     # обновление экрана
     pg.display.update()
