@@ -17,18 +17,20 @@ screen = pg.display.set_mode((WIDTH, HEIGHT))  # также здесь можн�
 pg.display.set_caption("Игра")
 clock = pg.time.Clock()
 
-
-def circ():
-    screen.fill(PINK)
+def random1():
+    global WIDTH, HEIGHT, R
     x1 = random.randint(R, WIDTH - R)
     y1 = random.randint(R, HEIGHT - R)
-    pg.draw.circle(screen, ORANGE, (x1, y1), R)
     return x1, y1
+
+def circ(x, y, R):
+    screen.fill(PINK)
+    pg.draw.circle(screen, ORANGE, (x, y), R)
 
 
 # если надо до цикла отобразить какие-то объекты, обновляем экран
-x, y = circ()
-flag_pop = False
+x, y = random1()
+circ(x, y, R)
 pg.display.update()
 
 # главный цикл
@@ -46,21 +48,22 @@ while flag_play:
     if not flag_play:
         break
     pressed = pg.mouse.get_pressed()
-    if pressed[1]:
-        if not flag_pop:
-            current_pos = pg.mouse.get_pos()
-            print(current_pos)
-            distantion = (current_pos[0] - x)**2 + (current_pos[1] - y)**2
-            distantion = distantion**0.5
-            if distantion <= R:
-                flag_pop = True
-            # if (x - R <= current_pos[0] <= x + R) and (y - R <= current_pos[1] <= y + R):
-            #     flag_pop = True
-        if flag_pop:
-            x, y = circ()
+    current_pos = pg.mouse.get_pos()
+    distantion = (current_pos[0] - x) ** 2 + (current_pos[1] - y) ** 2
+    distantion = distantion ** 0.5
+    if distantion <= R:
+        if pressed[1]:
+            x, y = random1()
+            circ(x, y, R)
             print(x, y)
-            flag_pop = False
-
+        if pressed[0]:
+            if R < 100:
+                R += 2
+                circ(x, y, R)
+        if pressed[2]:
+            if R > 25:
+                R -= 2
+                circ(x, y, R)
     # изменение объектов
     # ...
 
