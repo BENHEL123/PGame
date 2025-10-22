@@ -1,6 +1,18 @@
 # здесь подключаются модули:
 import pygame as pg
 
+def move_ball(x1, y1, SPEED1):
+    x, y, SPEED = x1, y1, SPEED1
+    if x >= WIDTH and y == H1:
+        x, y = WIDTH, H2
+    if x <= 0 - BALL_WIDTH and y == H2:
+        x, y = 0 - BALL_WIDTH, H1
+    if 0 - BALL_WIDTH <= x <= WIDTH + BALL_WIDTH and y <= 150:
+        x += SPEED
+    if 0 - BALL_WIDTH <= x <= WIDTH + BALL_WIDTH and y >= 300:
+        x -= SPEED
+    return(x, y)
+
 # здесь определяются константы, функции и классы:
 FPS = 60
 WIDTH, HEIGHT = 1000, 600
@@ -55,23 +67,25 @@ while flag_play:
             break
     if not flag_play:
         break
-    if x >= WIDTH and y == H1:
-        x, y = WIDTH, H2
-    if x <= 0 - BALL_WIDTH and y == H2:
-        x, y = 0 - BALL_WIDTH, H1
-    if 0 - BALL_WIDTH <= x <= WIDTH + BALL_WIDTH and y <= 150:
-        x += SPEED
-    if 0 - BALL_WIDTH <= x <= WIDTH + BALL_WIDTH and y >= 300:
-        x -= SPEED
-
-    if x1 >= WIDTH and y1 == H1:
-        x1, y1 = WIDTH, H2
-    if x1 <= 0 - BALL_WIDTH and y1 == H2:
-        x1, y1 = 0 - BALL_WIDTH, H1
-    if 0 - BALL_WIDTH <= x1 <= WIDTH + BALL_WIDTH and y1 <= 150:
-        x1 += SPEED + 5
-    if 0 - BALL_WIDTH <= x1 <= WIDTH + BALL_WIDTH and y1 >= 300:
-        x1 -= SPEED + 5
+    # if x >= WIDTH and y == H1:
+    #     x, y = WIDTH, H2
+    # if x <= 0 - BALL_WIDTH and y == H2:
+    #     x, y = 0 - BALL_WIDTH, H1
+    # if 0 - BALL_WIDTH <= x <= WIDTH + BALL_WIDTH and y <= 150:
+    #     x += SPEED
+    # if 0 - BALL_WIDTH <= x <= WIDTH + BALL_WIDTH and y >= 300:
+    #     x -= SPEED
+    #
+    # if x1 >= WIDTH and y1 == H1:
+    #     x1, y1 = WIDTH, H2
+    # if x1 <= 0 - BALL_WIDTH and y1 == H2:
+    #     x1, y1 = 0 - BALL_WIDTH, H1
+    # if 0 - BALL_WIDTH <= x1 <= WIDTH + BALL_WIDTH and y1 <= 150:
+    #     x1 += SPEED + 5
+    # if 0 - BALL_WIDTH <= x1 <= WIDTH + BALL_WIDTH and y1 >= 300:
+    #     x1 -= SPEED + 5
+    x, y = move_ball(x, y, SPEED)
+    x1, y1 = move_ball(x1, y1, SPEED + 5)
     screen.blit(background, (0, 0))
 
 
