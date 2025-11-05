@@ -1,11 +1,21 @@
 import pygame as pg
 import random
+
+FPS = 60
+WIDTH, HEIGHT = 1000, 600
+
+
 class Ball:
     def __init__(self):
         self.ball_surf = pg.Surface((BALL_WIDTH, BALL_HEIGTH), pg.SRCALPHA)
         self.ball_surf.fill((0, 0, 0, 0))
-        pg.draw.circle(self.ball_surf, (*BLUE, 90), (BALL_WIDTH // 2, BALL_HEIGTH // 2), R)
-        self.speed = random.randint(0,15)
+        r = random.randint(0, 255)
+        g = random.randint(0, 255)
+        b = random.randint(0, 255)
+        self.color = (r, g, b)
+        pg.draw.circle(self.ball_surf, (*self.color, 90), (BALL_WIDTH // 2, BALL_HEIGTH // 2), R)
+        self.speed = random.randint(0, 15)
+        # self.color = random.randint((0, 0, 0), (255, 255, 255))
         self.ball_rect = self.ball_surf.get_rect(topleft=(0 - R, H1))
 
     def move_ball(self):
@@ -31,8 +41,6 @@ class Ball:
         return
 
 
-FPS = 60
-WIDTH, HEIGHT = 1000, 600
 LIGHT_BLUE_BLUE = (96, 110, 140)
 LIGHT_PURPLE = (108, 77, 117)
 BLUE = (0, 51, 153)
