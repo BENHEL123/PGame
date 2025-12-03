@@ -56,21 +56,23 @@ class Worm:
         self.r = 15
         old_center = self.rect.center
         self.surf = pg.Surface((self.r * 2, self.r * 2), pg.SRCALPHA)
-        self.rect = self.surf.get_rect(center=(self.rect.center))
+        self.rect = self.surf.get_rect(center=old_center)
+        self.surf.fill((0, 0, 0, 0))
+        pg.draw.circle(self.surf, (*ORANGE, 255), (self.rect.width // 2, self.rect.width // 2), self.r)
         self.mask = pg.mask.from_surface(self.surf)
-        return old_center
 
     def get_r(self):
         return self.r
 
     def get_coord(self, a):
         if a == 0:
-            x, y = self.rect.left()
-            x1, y1 = self.rect.right()
+            x = self.rect.left
+            x1 = self.rect.right
             return x, x1
         elif a == 1:
-            x, y = self.rect.bottom()
-            x1, y1 = self.rect.top()
+            x = self.rect.bottom
+            x1 = self.rect.top
+            return x, x1
 
 class Button:
     def __init__(self, text, text_size, text_color, button_color, button_cover_color, button_pos):
@@ -100,8 +102,9 @@ class Button:
 
 
 def check_click_on_button(button):
+    global worm
     if button.button_rect.collidepoint(pg.mouse.get_pos()):
-        Worm.reset()
+        worm.reset()
 
 class Text:
     def __init__(self, text, text_size, text_color, text_pos):
@@ -154,6 +157,8 @@ while flag_play:
             pg.quit()
             flag_play = False
             break
+        elif event.type == pg.MOUSEBUTTONDOWN:
+            check_click_on_button(button)
     if not flag_play:
         break
 
@@ -170,9 +175,9 @@ while flag_play:
         worm.move(dx=1)
     if worm.get_coord(0)[1] > WIDTH:
         worm.move(dx=-1)
-    if worm.get_coord(1)[0] > WIDTH:
+    if worm.get_coord(1)[1] > HEIGHT:
         worm.move(dy=-1)
-    if worm.get_coord(1) < 0:
+    if worm.get_coord(1)[0] < 0:
         worm.move(dy=1)
     cnt = 0
 
