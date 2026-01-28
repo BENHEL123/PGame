@@ -6,7 +6,7 @@ FPS = 60
 WIDTH, HEIGHT = 1280, 900
 WHITE = (255,255,255)
 
-class SpaceShip:
+class SpaceShip(pg.sprite.Sprite):
     def __init__(self):
         self.image = pg.image.load(r'imagesgame/spaceship.png')
         self.image = pg.transform.scale(self.image, (150, 150))
@@ -22,7 +22,7 @@ class SpaceShip:
     def draw(self, screen):
         screen.blit(self.image, self.rect)
 
-class Asteroids:
+class Asteroids(pg.sprite.Sprite):
     def __init__(self):
         pg.sprite.Sprite.__init__(self)
         num = random.randint(1,5)
@@ -31,14 +31,15 @@ class Asteroids:
         self.image = pg.transform.scale(self.image, (asteroid_scale, asteroid_scale))
         self.rect = self.image.get_rect()
         self.mask = pg.mask.from_surface(self.image)
-        self.speed = random.randint(5,15)
+        self.speed = random.randint(5,10)
         self.x = WIDTH
         self.y = random.randint(0, HEIGHT - asteroid_scale)
 
     def move(self):
         self.x -= self.speed
+        self.rect.topleft = (self.x, self.y)
         if self.rect.right < 0:
-            self.remove(asteroids_group)
+            self.kill()
     def draw(self, screen):
         screen.blit(self.image, (self.x, self.y))
 
@@ -81,7 +82,7 @@ spaceship = SpaceShip()
 # ...
 pg.display.update()  # затем обновляем экран, чтобы показать изменения
 spawn_asteroid = pg.USEREVENT
-pg.time.set_timer(spawn_asteroid, 1500)
+pg.time.set_timer(spawn_asteroid, 300)
 # главный игровой цикл:
 flag_play = True
 while flag_play:
@@ -114,6 +115,8 @@ while flag_play:
 
     # перерисовка экрана:
     # ...
+    for asteroid in asteroids:
+        asteroid.move()
     background.move()
     background.draw(screen)
     spaceship.draw(screen)
