@@ -33,6 +33,7 @@ class Asteroids:
         self.mask = pg.mask.from_surface(self.surf)
         self.speed = random.randint(5,15)
         self.x = WIDTH
+        self.y = random.randint(0, HEIGHT - asteroid_scale)
 
     def move(self):
         self.x -= 3
@@ -73,7 +74,7 @@ clock = pg.time.Clock()
 background = Background()
 # здесь происходит создание игровых объектов:
 # ...
-asteroids = Asteroids()
+asteroids = []
 spaceship = SpaceShip()
 # если надо до игрового цикла (=на самом старте игры) отобразить объекты, то отрисовываем их здесь:
 # ...
@@ -83,6 +84,8 @@ pg.display.update()  # затем обновляем экран, чтобы по
 flag_play = True
 while flag_play:
     clock.tick(FPS)  # настраиваем FPS (=частоту итераций в секунду)
+    spawn_asteroid = pg.USEREVENT
+    pg.time.set_timer(spawn_asteroid, 1500)
 
     # цикл обработки событий:
     for event in pg.event.get():
@@ -90,8 +93,12 @@ while flag_play:
             pg.quit()
             flag_play = False
             break
+        if event.type == spawn_asteroid:
+            asteroids.append(Asteroids())
     if not flag_play:
         break
+
+
 
     keys = pg.key.get_pressed()
     if keys[pg.K_UP]:
@@ -109,5 +116,9 @@ while flag_play:
     background.move()
     background.draw(screen)
     spaceship.draw(screen)
-    asteroids.draw(screen)
+    for asteroid in asteroids:
+        asteroid.move()
+        asteroid.draw()
+        if asteroid.rect.right < 0:
+            asteroids.remove(asteroid)
     pg.display.update()  # обновление экрана, чтобы отобразить новую перерисовку
