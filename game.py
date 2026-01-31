@@ -5,9 +5,15 @@ import random
 FPS = 60
 WIDTH, HEIGHT = 1280, 900
 WHITE = (255,255,255)
+RED = (220, 50, 50)
+GRAY = (120, 120, 120)
+BLACK = (0, 0, 0)
+
 
 class SpaceShip(pg.sprite.Sprite):
     def __init__(self):
+        self.hp_max = 5
+        self.hp = self.hp_max
         self.image = pg.image.load(r'imagesgame/spaceship.png')
         self.image = pg.transform.scale(self.image, (150, 150))
         self.image = pg.transform.rotate(self.image, 90)
@@ -21,6 +27,37 @@ class SpaceShip(pg.sprite.Sprite):
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
+
+class Planet(pg.sprite.Sprite):
+    def __init__(self):
+        super().__init__()
+        self.image = pg.image.load(r'imagesgame/planet.png').convert_alpha()
+        self.image = pg.transform.scale(self.image, (220, 220))
+        self.rect = self.image.get_rect()
+
+        self.speed = 3
+        self.rect.x = WIDTH + random.randint(200, 600)
+        self.rect.y = random.randint(50, HEIGHT - self.rect.height - 50)
+
+        self.drop_radius = 140
+        self.delivered = False
+
+    def move(self):
+        self.rect.x -= self.speed
+        if self.rect.right < 0:
+            self.kill()
+
+    def try_deliver(self, ship_rect):
+        sx, sy = ship_rect.center
+        px, py = self.rect.center
+        dx = sx - px
+        dy = sy - py
+        in_zone = (dx*dx + dy*dy) <= (self.drop_radius * self.drop_radius)
+
+        if in_zone and not self.delivered:
+            self.delivered = True
+            return True
+        return False
 
 class Asteroids(pg.sprite.Sprite):
     def __init__(self):
@@ -68,6 +105,21 @@ class Background:
         screen.blit(self.image, (self.x2, 0))
         screen.blit(self.image, (self.x3, 0))
 
+def draw_hp(screen, hp, hp_max):
+    font = pg.font.Font(None, 48)  # встроенный шрифт
+    text = font.render("HP:", True, BLACK)
+    screen.blit(text, (20, 20))
+
+    size = 25
+    gap = 8
+    start_x = 20 + text.get_width() + 15
+    y = 25
+
+    for i in range(hp_max):
+        color = RED if i < hp else GRAY
+        pg.draw.rect(screen, color, (start_x + i * (size + gap), y, size, size), 0)  # width=0 => заливка [web:58]
+        pg.draw.rect(screen, BLACK, (start_x + i * (size + gap), y, size, size), 2)
+
 # здесь происходит инициализация:
 pg.init()
 screen = pg.display.set_mode((WIDTH, HEIGHT))  # здесь можно указать и другие настройки экрана (битовые флаги)
@@ -78,11 +130,14 @@ background = Background()
 # ...
 asteroids = pg.sprite.Group()
 spaceship = SpaceShip()
+planets = pg.sprite.Group()
 # если надо до игрового цикла (=на самом старте игры) отобразить объекты, то отрисовываем их здесь:
 # ...
 pg.display.update()  # затем обновляем экран, чтобы показать изменения
-spawn_asteroid = pg.USEREVENT
+spawn_asteroid = pg.USEREVENT + 1
+SPAWN_PLANET = pg.USEREVENT + 2
 pg.time.set_timer(spawn_asteroid, 300)
+pg.time.set_timer(SPAWN_PLANET, 3500)
 # главный игровой цикл:
 flag_play = True
 while flag_play:
@@ -97,6 +152,8 @@ while flag_play:
             break
         if event.type == spawn_asteroid:
             asteroids.add(Asteroids())
+        if event.type == SPAWN_PLANET:
+            planets.add(Planet())
     if not flag_play:
         break
 
@@ -120,7 +177,16 @@ while flag_play:
     background.move()
     background.draw(screen)
     spaceship.draw(screen)
+    planets.draw(screen)
     asteroids.draw(screen)
-    if pg.sprite.spritecollideany(spaceship, asteroids, collided=pg.sprite.collide_mask) is not None:
-        break
+    draw_hp(screen, spaceship.hp, spaceship.hp_max)
+    if pg.sprite.spritecollideany(spaceship, asteroids, collided=pg.sprite.collide_mask):
+        spaceship.hp -= 1
+        if spaceship.hp <= 0:
+            break
+    for planet in planets:
+        planet.move()
+        if planet.try_deliver(spaceship.rect):
+            # count of delivery and money
+            pass
     pg.display.update()  # обновление экрана, чтобы отобразить новую перерисовку
