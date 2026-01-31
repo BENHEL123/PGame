@@ -16,7 +16,7 @@ class SpaceShip(pg.sprite.Sprite):
     def __init__(self):
         self.hp_max = 20
         self.hp = self.hp_max
-        self.image = pg.image.load(r'imagesgame/spaceship.png')
+        self.image = pg.image.load(r'imagesgame/spaceship.png').convert_alpha()
         self.image = pg.transform.scale(self.image, (150, 150))
         self.image = pg.transform.rotate(self.image, 90)
         self.rect = self.image.get_rect()
@@ -66,7 +66,7 @@ class Asteroids(pg.sprite.Sprite):
         pg.sprite.Sprite.__init__(self)
         num = random.randint(1,5)
         asteroid_scale = random.randint(200, 400)
-        self.image = pg.image. load(r'imagesgame/asteroid' + str(num) + '.png')
+        self.image = pg.image. load(r'imagesgame/asteroid' + str(num) + '.png').convert_alpha()
         self.image = pg.transform.scale(self.image, (asteroid_scale, asteroid_scale))
         self.rect = self.image.get_rect()
         self.mask = pg.mask.from_surface(self.image)
@@ -220,5 +220,5 @@ while flag_play:
             money += salary
             # count of delivery and money
             pass
-        draw_ui(screen, money, deliveries)
+    draw_ui(screen, money, deliveries)
     pg.display.update()  # обновление экрана, чтобы отобразить новую перерисовку
