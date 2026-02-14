@@ -185,6 +185,7 @@ while flag_play:
                 money -= 200
             elif btn_exit.collidepoint(mouse_pos):
                 state = "FLY"
+                deliveries += 1
     if not flag_play:
         break
 
@@ -261,14 +262,21 @@ while flag_play:
         background.draw(screen)
         # shop
         overlay = pg.Surface((WIDTH, HEIGHT))
+        f_shop = pg.font.Font(None, 50)
         overlay.set_alpha(180);
         overlay.fill((0, 0, 0))
         screen.blit(overlay, (0, 0))
 
         # buttons
         pg.draw.rect(screen, (100, 100, 100), btn_repair)
+        txt_repair = f_shop.render(f"Repair HP (100$) | Total: {money}$", True, WHITE)
+        screen.blit(txt_repair, (btn_repair.x + 10, btn_repair.y + 15))
         pg.draw.rect(screen, (100, 100, 100), btn_speed)
+        txt_speed = f_shop.render(f"Engine Upgrade (200$)", True, WHITE)
+        screen.blit(txt_speed, (btn_speed.x + 10, btn_speed.y + 15))
         pg.draw.rect(screen, (200, 50, 50), btn_exit)
+        txt_exit = f_shop.render("EXIT / RESUME", True, WHITE)
+        screen.blit(txt_exit, (btn_exit.x + 100, btn_exit.y + 15))
         #text
 
     # UI
