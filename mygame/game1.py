@@ -13,6 +13,7 @@ BLACK = (0, 0, 0)
 
 STATE1 = "FLY"
 STATE2 = "SHOP"
+STATE3 = "ENTER"
 
 
 class SpaceShip(pg.sprite.Sprite):
@@ -67,7 +68,7 @@ class Planet(pg.sprite.Sprite):
 class Bullet(pg.sprite.Sprite):
     def __init__(self):
         pg.sprite.Sprite.__init__(self)
-        self.image = pg.surface((15,5))   # pg.image.load(r'imagesgame/bullet.png').convert.alpha()
+        self.image = pg.Surface((15,5))   # pg.image.load(r'imagesgame/bullet.png').convert.alpha()
         self.image.fill(RED)
         self.rect = self.image.get_rect()
         self.speed = 15
@@ -82,7 +83,7 @@ class Asteroids(pg.sprite.Sprite):
         pg.sprite.Sprite.__init__(self)
         num = random.randint(1,5)
         asteroid_scale = random.randint(200, 400)
-        self.image = pg.image. load(r'imagesgame/asteroid' + str(num) + '.png').convert_alpha()
+        self.image = pg.image.load(r'imagesgame/asteroid' + str(num) + '.png').convert_alpha()
         self.image = pg.transform.scale(self.image, (asteroid_scale, asteroid_scale))
         self.rect = self.image.get_rect()
         self.mask = pg.mask.from_surface(self.image)
@@ -102,6 +103,7 @@ class Background:
     def __init__(self):
         self.image = pg.image.load(r'imagesgame/background.jpeg')
         self.speed = 3
+        self.orig_speed = self.speed
         self.width = self.image.get_width()
         self.x1 = 0
         self.x2 = self.width
@@ -133,8 +135,7 @@ def draw_ui(screen, money, deliveries):
     screen.blit(deliveries_text, (WIDTH - 300, 50))
 
 class ShopPanel:
-    def init(self, y_pos, title, price, description):
-
+    def __init__(self, y_pos, title, price, description):
         self.font_title = pg.font.Font(None, 42)
         self.font_description= pg.font.Font(None, 32)
         self.width = 500
@@ -200,7 +201,6 @@ pg.display.set_caption("Игра")
 clock = pg.time.Clock()
 background = Background()
 # здесь происходит создание игровых объектов:
-# ...
 font1 = pg.font.Font(None, 96)
 asteroids = pg.sprite.Group()
 spaceship = SpaceShip()
@@ -210,7 +210,13 @@ ammo = 20
 money = 0
 deliveries = 0
 damage_cooldown = 0
-state = STATE1  # fly - лететь; shop - остановка, магазин
+background.orig_speed = background.speed
+shop_panels = [
+    ShopPanel(200, 'Ammo Pack', 50, '+20 ammos'),
+    ShopPanel(340, 'Engine Boost', 200, 'increase speed'),
+    ShopPanel(480, 'Repair', 100, 'Restore ur hp')
+]
+state = STATE1  # fly - лететь; shop - остановка, магазин; ENTER - Вход в магазин
 msg_timer = 0
 btn_repair = pg.Rect(WIDTH//2 - 200, 350, 400, 60)
 btn_speed = pg.Rect(WIDTH//2 - 200, 450, 400, 60)
@@ -258,17 +264,21 @@ while flag_play:
             if event.key == pg.K_SPACE and ammo > 0:
                 bullets.add(Bullet())
                 ammo -= 1
-        if event.type == pg.MOUSEBUTTONDOWN and state == "STATE2":
+        if event.type == pg.MOUSEBUTTONDOWN and state == STATE2:
             mouse_pos = pg.mouse.get_pos()
-            if btn_repair.collidepoint(mouse_pos) and money >= 100:
+            if shop_panels[0].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[0].price:
+                money -= shop_panels[0].price
+                ammo += 20
+            elif shop_panels[1].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[1].price:
+                spaceship.speed += 2
+                money -= shop_panels[1].price
+            elif shop_panels[2].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[2].price:
                 spaceship.hp = spaceship.hp_max
-                money -= 100
-            elif btn_speed.collidepoint(mouse_pos) and money >= 200:
-                spaceship.speed += 1
-                money -= 200
+                money -= shop_panels[2].price
             elif btn_exit.collidepoint(mouse_pos):
                 state = STATE1
-                deliveries += 1
+                background.speed = background.orig_speed
+
     if not flag_play:
         break
 
@@ -287,21 +297,17 @@ while flag_play:
 
     # перерисовка экрана:
     # ...
-    # checker
-    if deliveries > 0 and deliveries % 5 == 0 and state == STATE1:
-        state = "STATE2"
 
     # Отрисовка
     if state == STATE1:
-        # move starship
+        # move starship and background
+        background.move()
         keys = pg.key.get_pressed()
         if keys[pg.K_UP]:
             spaceship.move(dy=-1)
         if keys[pg.K_DOWN]:
             spaceship.move(dy=1)
 
-        # move background
-        background.move()
         for asteroid in asteroids:
             asteroid.move()
         for planet in planets:
@@ -321,7 +327,9 @@ while flag_play:
                     text = font1.render("Delivered!", True, WHITE)
                 money += salary
                 if deliveries % 5 == 0:
-                    state = STATE2
+                    state = STATE3
+                    for panel in shop_panels:
+                        panel.current_x = WIDTH
 
         # collisions
         if pg.sprite.spritecollideany(spaceship, asteroids, collided=pg.sprite.collide_mask):
@@ -335,6 +343,9 @@ while flag_play:
     # отрисовка
     screen.fill(WHITE)
 
+
+
+
     if state == "FLY":
         background.draw(screen)
         planets.draw(screen)
@@ -343,28 +354,32 @@ while flag_play:
         if msg_timer > 0:
             msg_timer -= 1
             screen.blit(text, (300, 300))
+    elif state == STATE3:
+        background.speed *= 0.96
+        background.move()
 
-    elif state == "STATE2":
-        # freeze background
+        for asteroid in asteroids:
+            asteroid.move()
+
+        for panel in shop_panels:
+            panel.update()
+
+        if background.speed < 0.1:
+            background.speed = 0
+            state = STATE2
+
         background.draw(screen)
-        # shop
-        overlay = pg.Surface((WIDTH, HEIGHT))
-        f_shop = pg.font.Font(None, 50)
-        overlay.set_alpha(180);
-        overlay.fill((0, 0, 0))
-        screen.blit(overlay, (0, 0))
+        planets.draw(screen)
+        asteroids.draw(screen)
+        spaceship.draw(screen)
+        for panel in shop_panels:
+            panel.draw(screen, money)
 
-        # buttons
-        pg.draw.rect(screen, (100, 100, 100), btn_repair)
-        txt_repair = f_shop.render(f"Repair HP (100$)", True, WHITE)
-        screen.blit(txt_repair, (btn_repair.x + 10, btn_repair.y + 15))
-        pg.draw.rect(screen, (100, 100, 100), btn_speed)
-        txt_speed = f_shop.render(f"Engine Upgrade (200$)", True, WHITE)
-        screen.blit(txt_speed, (btn_speed.x + 10, btn_speed.y + 15))
-        pg.draw.rect(screen, (200, 50, 50), btn_exit)
-        txt_exit = f_shop.render("EXIT / RESUME", True, WHITE)
-        screen.blit(txt_exit, (btn_exit.x + 100, btn_exit.y + 15))
-        #text
+    elif state == STATE2:
+        background.draw(screen)
+        for panel in shop_panels:
+            panel.draw(screen, money)
+
 
     # UI
     draw_hp(screen, spaceship.hp, spaceship.hp_max)
