@@ -11,6 +11,9 @@ RED = (220, 50, 50)
 GRAY = (120, 120, 120)
 BLACK = (0, 0, 0)
 
+STATE1 = "FLY"
+STATE2 = "SHOP"
+
 
 class SpaceShip(pg.sprite.Sprite):
     def __init__(self):
@@ -60,6 +63,19 @@ class Planet(pg.sprite.Sprite):
             self.delivered = True
             return True
         return False
+
+class Bullet(pg.sprite.Sprite):
+    def __init__(self):
+        pg.sprite.Sprite.__init__(self)
+        self.image = pg.surface((15,5))   # pg.image.load(r'imagesgame/bullet.png').convert.alpha()
+        self.image.fill(RED)
+        self.rect = self.image.get_rect()
+        self.speed = 15
+
+    def update(self):
+        self.rect.x += self.speed
+        if self.rect.x > WIDTH:
+            self.kill()
 
 class Asteroids(pg.sprite.Sprite):
     def __init__(self):
@@ -143,10 +159,12 @@ font1 = pg.font.Font(None, 96)
 asteroids = pg.sprite.Group()
 spaceship = SpaceShip()
 planets = pg.sprite.Group()
+bullets = pg.sprite.Group()
+ammo = 20
 money = 0
 deliveries = 0
-cooldown = 0
-state = "FLY"  # fly - лететь shop - остановка, магазин
+damage_cooldown = 0
+state = STATE1  # fly - лететь; shop - остановка, магазин
 msg_timer = 0
 btn_repair = pg.Rect(WIDTH//2 - 200, 350, 400, 60)
 btn_speed = pg.Rect(WIDTH//2 - 200, 450, 400, 60)
@@ -157,14 +175,29 @@ font_ui = pg.font.Font(None, 36)
 pg.display.update()  # затем обновляем экран, чтобы показать изменения
 spawn_asteroid = pg.USEREVENT + 1
 SPAWN_PLANET = pg.USEREVENT + 2
-pg.time.set_timer(spawn_asteroid, 600)
-pg.time.set_timer(SPAWN_PLANET, 3500)
+# pg.time.set_timer(spawn_asteroid, 600)
+# pg.time.set_timer(SPAWN_PLANET, 3500)
+planet_timer = 0
+planet_cooldown = random.randint(140, 180)
+asteroid_timer = 0
+asteroid_cooldown = random.randint(20, 60)
 # главный игровой цикл:
 flag_play = True
 while flag_play:
     clock.tick(FPS)  # настраиваем FPS (=частоту итераций в секунду)
-    cooldown += 1
-
+    damage_cooldown += 1
+    print(asteroid_timer)
+    if state == STATE1:
+        planet_timer += 1
+        asteroid_timer += 1
+    if planet_timer >= planet_cooldown:
+        planets.add(Planet())
+        planet_timer = 0
+        planet_cooldown = random.randint(140, 180)
+    if asteroid_timer >= asteroid_cooldown:
+        asteroids.add(Asteroids())
+        asteroid_timer = 0
+        asteroid_cooldown = random.randint(20, 60)
     # цикл обработки событий:
     for event in pg.event.get():
         if event.type == pg.QUIT:
@@ -175,7 +208,11 @@ while flag_play:
             asteroids.add(Asteroids())
         if event.type == SPAWN_PLANET:
             planets.add(Planet())
-        if event.type == pg.MOUSEBUTTONDOWN and state == "SHOP":
+        if event.type == pg.KEYDOWN:
+            if event.key == pg.K_SPACE and ammo > 0:
+                bullets.add(Bullet())
+                ammo -= 1
+        if event.type == pg.MOUSEBUTTONDOWN and state == "STATE2":
             mouse_pos = pg.mouse.get_pos()
             if btn_repair.collidepoint(mouse_pos) and money >= 100:
                 spaceship.hp = spaceship.hp_max
@@ -184,7 +221,7 @@ while flag_play:
                 spaceship.speed += 1
                 money -= 200
             elif btn_exit.collidepoint(mouse_pos):
-                state = "FLY"
+                state = STATE1
                 deliveries += 1
     if not flag_play:
         break
@@ -205,17 +242,19 @@ while flag_play:
     # перерисовка экрана:
     # ...
     # checker
-    if deliveries > 0 and deliveries % 5 == 0 and state == "FLY":
-        state = "SHOP"
+    if deliveries > 0 and deliveries % 5 == 0 and state == STATE1:
+        state = "STATE2"
 
     # Отрисовка
-    if state == "FLY":
+    if state == STATE1:
         # move starship
         keys = pg.key.get_pressed()
-        if keys[pg.K_UP]: spaceship.move(dy=-1)
-        if keys[pg.K_DOWN]: spaceship.move(dy=1)
+        if keys[pg.K_UP]:
+            spaceship.move(dy=-1)
+        if keys[pg.K_DOWN]:
+            spaceship.move(dy=1)
 
-        # move backgtound
+        # move background
         background.move()
         for asteroid in asteroids:
             asteroid.move()
@@ -236,15 +275,17 @@ while flag_play:
                     text = font1.render("Delivered!", True, WHITE)
                 money += salary
                 if deliveries % 5 == 0:
-                    state = "SHOP"
+                    state = STATE2
 
         # collisions
         if pg.sprite.spritecollideany(spaceship, asteroids, collided=pg.sprite.collide_mask):
-            if cooldown >= 30:
-                cooldown = 0
+            if damage_cooldown >= 30:
+                damage_cooldown = 0
                 spaceship.hp -= 1
             if spaceship.hp <= 0: break
-
+        hits = pg.sprite.groupcollide(asteroids, bullets, True, True, collided=pg.sprite.collide_mask)
+        for hit in hits:
+            money += 5
     # отрисовка
     screen.fill(WHITE)
 
@@ -257,7 +298,7 @@ while flag_play:
             msg_timer -= 1
             screen.blit(text, (300, 300))
 
-    elif state == "SHOP":
+    elif state == "STATE2":
         # freeze background
         background.draw(screen)
         # shop
@@ -269,7 +310,7 @@ while flag_play:
 
         # buttons
         pg.draw.rect(screen, (100, 100, 100), btn_repair)
-        txt_repair = f_shop.render(f"Repair HP (100$) | Total: {money}$", True, WHITE)
+        txt_repair = f_shop.render(f"Repair HP (100$)", True, WHITE)
         screen.blit(txt_repair, (btn_repair.x + 10, btn_repair.y + 15))
         pg.draw.rect(screen, (100, 100, 100), btn_speed)
         txt_speed = f_shop.render(f"Engine Upgrade (200$)", True, WHITE)
