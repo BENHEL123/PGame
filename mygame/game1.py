@@ -132,6 +132,52 @@ def draw_ui(screen, money, deliveries):
     deliveries_text = font.render(f"Deliveries: {deliveries}", True, WHITE)
     screen.blit(deliveries_text, (WIDTH - 300, 50))
 
+class ShopPanel:
+    def init(self, y_pos, title, price, description):
+
+        self.font_title = pg.font.Font(None, 42)
+        self.font_description= pg.font.Font(None, 32)
+        self.width = 500
+        self.height = 110
+
+        # Позиция
+        self.target_x = WIDTH - self.width - 50
+        self.current_x = WIDTH
+        self.y = y_pos
+
+
+        self.title = title
+        self.price = price
+        self.description = description
+
+
+        self.rect = pg.Rect(self.current_x, self.y, self.width, self.height)
+        self.buy_button_rect = pg.Rect(0, 0, 120, 40) # Кнопка buy
+
+    def update(self):
+        self.current_x += (self.target_x - self.current_x) * 0.08
+        self.rect.x = int(self.current_x)
+
+        self.buy_button_rect.center = (self.rect.right - 80, self.rect.centery + 25)
+
+    def draw(self, screen, money):
+        pg.draw.rect(screen, (20, 20, 40), self.rect, 0, 15)
+        pg.draw.rect(screen, (100, 100, 200), self.rect, 2, 15)
+
+        # text
+        title_surf = self.font_title.render(f"{self.title} ({self.price}$)", True, WHITE)
+        screen.blit(title_surf, (self.rect.x + 20, self.rect.y + 15))
+
+        desc_surf = self.font_description.render(self.description, True, GRAY)
+        screen.blit(desc_surf, (self.rect.x + 20, self.rect.y + 55))
+
+        can_buy = money >= self.price
+        btn_color = (40, 180, 40) if can_buy else (150, 40, 40)
+        pg.draw.rect(screen, btn_color, self.buy_button_rect, 0, 8)
+        buy_text = self.font_title.render("Buy", True, WHITE)
+        screen.blit(buy_text, (self.buy_button_rect.centerx - buy_text.get_width() // 2, self.buy_button_rect.centery - buy_text.get_height() // 2))
+
+
 def draw_hp(screen, hp, hp_max):
     font = pg.font.Font(None, 48)
     text = font.render("HP:", True, RED)
