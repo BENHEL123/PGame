@@ -178,6 +178,14 @@ class ShopPanel:
         buy_text = self.font_title.render("Buy", True, WHITE)
         screen.blit(buy_text, (self.buy_button_rect.centerx - buy_text.get_width() // 2, self.buy_button_rect.centery - buy_text.get_height() // 2))
 
+def exit_btn(screen, rect, text, font):
+    pg.draw.rect(screen, (0,204,204), rect, 0, 15)
+    pg.draw.rect(screen, (0, 153, 153), rect, 2, 15)
+
+    txt = font.render(text, True, (255, 255, 255))
+    rect1 = txt.get_rect()
+    screen.blit(txt, (rect.centerx - txt.get.width() // 2,
+                      rect.cemtery - txt.get.heigth() // 2))
 
 def draw_hp(screen, hp, hp_max):
     font = pg.font.Font(None, 48)
@@ -289,7 +297,6 @@ while flag_play:
         spaceship.move(dy=-1)
     if keys[pg.K_DOWN]:
         spaceship.move(dy=1)
-    screen.fill(WHITE)
 
 
     # изменение характеристик объектов:
@@ -377,6 +384,7 @@ while flag_play:
 
     elif state == STATE2:
         background.draw(screen)
+        exit_btn(screen, btn_exit, "Exit", font_ui)
         for panel in shop_panels:
             panel.draw(screen, money)
 
