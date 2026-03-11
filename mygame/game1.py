@@ -14,6 +14,9 @@ BLACK = (0, 0, 0)
 STATE1 = "FLY"
 STATE2 = "SHOP"
 STATE3 = "ENTER"
+STATE4 = "ROUTE"
+STATE5 = "CARGO"
+STATE6 = "STATION"
 
 
 class SpaceShip(pg.sprite.Sprite):
@@ -28,8 +31,9 @@ class SpaceShip(pg.sprite.Sprite):
         self.speed = 5
 
     def move(self, dy=0):
-        if (self.rect.top + dy * self.speed) > 0 and (self.rect.bottom + dy * self.speed) < HEIGHT:
-            self.rect.y += dy * self.speed
+        current_speed = max(2, self.speed - cargo_weight)
+        if (self.rect.top + dy * current_speed) > 0 and (self.rect.bottom + dy * current_speed) < HEIGHT:
+            self.rect.y += dy * current_speed
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
@@ -64,6 +68,24 @@ class Planet(pg.sprite.Sprite):
             self.delivered = True
             return True
         return False
+
+class CargoOffer:
+    def __init__(self, name, reward, weight, color):
+        self.name = name
+        self.reward = reward
+        self.weight = weight
+        self.color = color
+
+def generate_cargo():
+    pool = [
+        CargoOffer("Food", 80, 0, (120, 220, 120)),
+        CargoOffer("Parts", 130, 1, (180, 180, 180)),
+        CargoOffer("Medicine", 170, 1, (120, 180, 255)),
+        CargoOffer("Gold", 300, 2, (255, 215, 0)),
+        CargoOffer("Crystals", 360, 2, (120, 255, 255)),
+        CargoOffer("Artifact", 500, 3, (220, 120, 255)),
+    ]
+    return random.sample(pool, 3)
 
 class Bullet(pg.sprite.Sprite):
     def __init__(self):
@@ -184,8 +206,48 @@ def exit_btn(screen, rect, text, font):
 
     txt = font.render(text, True, (255, 255, 255))
     rect1 = txt.get_rect()
-    screen.blit(txt, (rect.centerx - txt.get.width() // 2,
-                      rect.cemtery - txt.get.heigth() // 2))
+    screen.blit(txt, (rect.centerx - txt.get_width() // 2,
+                      rect.centery - txt.get_heigth() // 2))
+
+def draw_route_menu(screen, font_big, font_small, left_rect, right_rect):
+    title = font_big.render("Choose planet", True, WHITE)
+    screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 80))
+
+    pg.draw.ellipse(screen, (80, 170, 255), left_rect)
+    pg.draw.ellipse(screen, (255, 170, 80), right_rect)
+
+    txt1 = font_small.render("Station", True, WHITE)
+    txt2 = font_small.render("Cargo Terminal", True, WHITE)
+
+    screen.blit(txt1, (left_rect.centerx - txt1.get_width() // 2, left_rect.bottom + 20))
+    screen.blit(txt2, (right_rect.centerx - txt2.get_width() // 2, right_rect.bottom + 20))
+
+def draw_cargo_menu(screen, font_big, font_small, cards, offers, back_btn):
+    title = font_big.render("Cargo Terminal", True, WHITE)
+    screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 80))
+
+    for rect, cargo in zip(cards, offers):
+        pg.draw.rect(screen, (30, 30, 60), rect, 0, 16)
+        pg.draw.rect(screen, cargo.color, rect, 3, 16)
+
+        name = font_small.render(cargo.name, True, WHITE)
+        reward = font_small.render(f"Reward: {cargo.reward}$", True, WHITE)
+        weight = font_small.render(f"Weight: {cargo.weight}", True, WHITE)
+
+        screen.blit(name, (rect.x + 20, rect.y + 20))
+        screen.blit(reward, (rect.x + 20, rect.y + 60))
+        screen.blit(weight, (rect.x + 20, rect.y + 95))
+
+    exit_btn(screen, back_btn, "Back", font_small)
+
+def draw_station_menu(screen, font_big, font_small):
+    title = font_big.render("Station", True, WHITE)
+    screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 80))
+
+    exit_btn(screen, station_btn_repair, "Repair - 100$", font_small)
+    exit_btn(screen, station_btn_ammo, "Ammo +20 - 50$", font_small)
+    exit_btn(screen, station_btn_engine, "Engine +2 - 200$", font_small)
+    exit_btn(screen, station_btn_back, "Back", font_small)
 
 def draw_hp(screen, hp, hp_max):
     font = pg.font.Font(None, 48)
@@ -230,6 +292,24 @@ btn_repair = pg.Rect(WIDTH//2 - 200, 350, 400, 60)
 btn_speed = pg.Rect(WIDTH//2 - 200, 450, 400, 60)
 btn_exit = pg.Rect(WIDTH//2 - 200, 550, 400, 60)
 font_ui = pg.font.Font(None, 36)
+#Cargo - выбор груза
+cargo_offers = generate_cargo
+selected_cargo = None
+cargo_reward = 0
+cargo_weight = 0
+route_left_rect = pg.Rect(250, 260, 220, 220)
+route_right_rect = pg.Rect(780, 260, 220, 220)
+cargo_cards = [
+    pg.Rect(170, 220, 300, 140),
+    pg.Rect(490, 220, 300, 140),
+    pg.Rect(810, 220, 300, 140)
+]
+btn_back_route = pg.Rect(WIDTH//2 - 120, 700, 240, 60)
+station_btn_repair = pg.Rect(WIDTH//2 - 200, 260, 400, 60)
+station_btn_ammo = pg.Rect(WIDTH//2 - 200, 360, 400, 60)
+station_btn_engine = pg.Rect(WIDTH//2 - 200, 460, 400, 60)
+station_btn_back = pg.Rect(WIDTH//2 - 200, 560, 400, 60)
+transition_timer = 0
 # если надо до игрового цикла (=на самом старте игры) отобразить объекты, то отрисовываем их здесь:
 # ...
 pg.display.update()  # затем обновляем экран, чтобы показать изменения
@@ -272,31 +352,45 @@ while flag_play:
             if event.key == pg.K_SPACE and ammo > 0:
                 bullets.add(Bullet())
                 ammo -= 1
-        if event.type == pg.MOUSEBUTTONDOWN and state == STATE2:
+        if event.type == pg.MOUSEBUTTONDOWN and state == STATE4:
             mouse_pos = pg.mouse.get_pos()
-            if shop_panels[0].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[0].price:
-                money -= shop_panels[0].price
-                ammo += 20
-            elif shop_panels[1].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[1].price:
-                spaceship.speed += 2
-                money -= shop_panels[1].price
-            elif shop_panels[2].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[2].price:
+            if route_left_rect.collidepoint(mouse_pos):
+                state = STATE6
+            elif route_right_rect.collidepoint(mouse_pos):
+                cargo_offers = generate_cargo()
+                state = STATE5
+        if event.type == pg.MOUSEBUTTONDOWN and state == STATE5:
+            mouse_pos = pg.mouse.get_pos()
+            for rect, cargo in zip(cargo_cards, cargo_offers):
+                if rect.collidepoint(mouse_pos):
+                    selected_cargo = cargo
+                    cargo_reward = cargo.reward
+                    cargo_weight = cargo.weight
+                    state = STATE1
+                    background.speed = background.orig_speed
+                    asteroid_timer = 0
+                    planet_timer = 0
+            if btn_back_route.collidepoint(mouse_pos):
+                state = STATE4
+        if event.type == pg.MOUSEBUTTONDOWN and state == STATE6:
+            mouse_pos = pg.mouse.get_pos()
+            if station_btn_repair.collidepoint(mouse_pos) and money >= 100:
+                money -= 100
                 spaceship.hp = spaceship.hp_max
-                money -= shop_panels[2].price
-            elif btn_exit.collidepoint(mouse_pos):
-                state = STATE1
-                background.speed = background.orig_speed
+            elif station_btn_ammo.collidepoint(mouse_pos) and money >= 50:
+                money -= 50
+                ammo += 20
+            elif station_btn_engine.collidepoint(mouse_pos) and money >= 200:
+                money -= 200
+                spaceship.speed += 2
+            elif station_btn_back.collidepoint(mouse_pos):
+                state = STATE4
 
     if not flag_play:
         break
 
 
 
-    keys = pg.key.get_pressed()
-    if keys[pg.K_UP]:
-        spaceship.move(dy=-1)
-    if keys[pg.K_DOWN]:
-        spaceship.move(dy=1)
 
 
     # изменение характеристик объектов:
@@ -332,11 +426,13 @@ while flag_play:
                     text = font1.render("Tips", True, WHITE)
                 else:
                     text = font1.render("Delivered!", True, WHITE)
-                money += salary
+                money += salary + cargo_reward
+                cargo_reward = 0
+                cargo_weight = 0
+                selected_cargo = None
                 if deliveries % 5 == 0:
                     state = STATE3
-                    for panel in shop_panels:
-                        panel.current_x = WIDTH
+                    transition_timer = 0
 
         # collisions
         if pg.sprite.spritecollideany(spaceship, asteroids, collided=pg.sprite.collide_mask):
@@ -353,7 +449,7 @@ while flag_play:
 
 
 
-    if state == "FLY":
+    if state == STATE1:
         background.draw(screen)
         planets.draw(screen)
         asteroids.draw(screen)
@@ -361,26 +457,32 @@ while flag_play:
         if msg_timer > 0:
             msg_timer -= 1
             screen.blit(text, (300, 300))
+
     elif state == STATE3:
-        background.speed *= 0.96
+        transition_timer += 1
+        background.speed *= 0.97
         background.move()
 
         for asteroid in asteroids:
             asteroid.move()
+        for planet in planets:
+            planet.move()
 
-        for panel in shop_panels:
-            panel.update()
+        if spaceship.rect.bottom > -20:
+            spaceship.rect.y -= 4
 
-        if background.speed < 0.1:
+        if background.speed < 0.15:
             background.speed = 0
-            state = STATE2
 
         background.draw(screen)
         planets.draw(screen)
         asteroids.draw(screen)
         spaceship.draw(screen)
-        for panel in shop_panels:
-            panel.draw(screen, money)
+
+        if spaceship.rect.bottom <= 0:
+            spaceship.rect.y = HEIGHT // 2
+            background.speed = background.orig_speed
+            state = STATE4
 
     elif state == STATE2:
         background.draw(screen)
@@ -388,6 +490,17 @@ while flag_play:
         for panel in shop_panels:
             panel.draw(screen, money)
 
+    elif state == STATE4:
+        screen.fill((10, 10, 30))
+        draw_route_menu(screen, font1, font_ui, route_left_rect, route_right_rect)
+
+    elif state == STATE5:
+        screen.fill((12, 12, 35))
+        draw_cargo_menu(screen, font1, font_ui, cargo_cards, cargo_offers, btn_back_route)
+
+    elif state == STATE6:
+        screen.fill((12, 12, 35))
+        draw_station_menu(screen, font1, font_ui)
 
     # UI
     draw_hp(screen, spaceship.hp, spaceship.hp_max)
