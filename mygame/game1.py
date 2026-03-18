@@ -16,16 +16,15 @@ STATE2 = "SHOP"
 STATE3 = "ENTER"
 STATE4 = "ROUTE"
 STATE5 = "CARGO"
-STATE6 = "STATION"
 
 
 class SpaceShip(pg.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, size=(150,150), angle=90):
         self.hp_max = 20
         self.hp = self.hp_max
         self.image = pg.image.load(r'imagesgame/spaceship.png').convert_alpha()
-        self.image = pg.transform.scale(self.image, (150, 150))
-        self.image = pg.transform.rotate(self.image, 90)
+        self.image = pg.transform.scale(self.image, size)
+        self.image = pg.transform.rotate(self.image, angle)
         self.rect = self.image.get_rect()
         self.mask = pg.mask.from_surface(self.image)
         self.speed = 5
@@ -184,7 +183,7 @@ class ShopPanel:
         self.buy_button_rect.center = (self.rect.right - 80, self.rect.centery + 25)
 
     def draw(self, screen, money):
-        pg.draw.rect(screen, (20, 20, 40), self.rect, 0, 15)
+        pg.draw.rect(screen, (20, 20, 40), self.rect, 5, 15)
         pg.draw.rect(screen, (100, 100, 200), self.rect, 2, 15)
 
         # text
@@ -206,8 +205,8 @@ def exit_btn(screen, rect, text, font):
 
     txt = font.render(text, True, (255, 255, 255))
     rect1 = txt.get_rect()
-    screen.blit(txt, (rect.centerx - txt.get_width() // 2,
-                      rect.centery - txt.get_heigth() // 2))
+    screen.blit(txt, (rect.centerx - rect1.width // 2,
+                      rect.centery - rect1.height // 2))
 
 def draw_route_menu(screen, font_big, font_small, left_rect, right_rect):
     title = font_big.render("Choose planet", True, WHITE)
@@ -274,10 +273,12 @@ background = Background()
 font1 = pg.font.Font(None, 96)
 asteroids = pg.sprite.Group()
 spaceship = SpaceShip()
+
+spaceship_shop = SpaceShip(size=(700, 700), angle=180)
 planets = pg.sprite.Group()
 bullets = pg.sprite.Group()
 ammo = 20
-money = 0
+money = 5000
 deliveries = 0
 damage_cooldown = 0
 background.orig_speed = background.speed
@@ -286,11 +287,11 @@ shop_panels = [
     ShopPanel(340, 'Engine Boost', 200, 'increase speed'),
     ShopPanel(480, 'Repair', 100, 'Restore ur hp')
 ]
-state = STATE1  # fly - лететь; shop - остановка, магазин; ENTER - Вход в магазин
+state = STATE2  # fly - лететь; shop - остановка, магазин; ENTER - Вход в магазин
 msg_timer = 0
-btn_repair = pg.Rect(WIDTH//2 - 200, 350, 400, 60)
+btn_repair = pg.Rect(WIDTH//2 - 200, 350,   400, 60)
 btn_speed = pg.Rect(WIDTH//2 - 200, 450, 400, 60)
-btn_exit = pg.Rect(WIDTH//2 - 200, 550, 400, 60)
+btn_exit = pg.Rect(WIDTH//2 + 100, 700, 500, 100)
 font_ui = pg.font.Font(None, 36)
 #Cargo - выбор груза
 cargo_offers = generate_cargo
@@ -326,7 +327,6 @@ flag_play = True
 while flag_play:
     clock.tick(FPS)  # настраиваем FPS (=частоту итераций в секунду)
     damage_cooldown += 1
-    print(asteroid_timer)
     if state == STATE1:
         planet_timer += 1
         asteroid_timer += 1
@@ -355,7 +355,7 @@ while flag_play:
         if event.type == pg.MOUSEBUTTONDOWN and state == STATE4:
             mouse_pos = pg.mouse.get_pos()
             if route_left_rect.collidepoint(mouse_pos):
-                state = STATE6
+                state = STATE2
             elif route_right_rect.collidepoint(mouse_pos):
                 cargo_offers = generate_cargo()
                 state = STATE5
@@ -372,19 +372,20 @@ while flag_play:
                     planet_timer = 0
             if btn_back_route.collidepoint(mouse_pos):
                 state = STATE4
-        if event.type == pg.MOUSEBUTTONDOWN and state == STATE6:
+        if event.type == pg.MOUSEBUTTONDOWN and state == STATE2:
             mouse_pos = pg.mouse.get_pos()
-            if station_btn_repair.collidepoint(mouse_pos) and money >= 100:
-                money -= 100
-                spaceship.hp = spaceship.hp_max
-            elif station_btn_ammo.collidepoint(mouse_pos) and money >= 50:
-                money -= 50
-                ammo += 20
-            elif station_btn_engine.collidepoint(mouse_pos) and money >= 200:
-                money -= 200
+            if shop_panels[1].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[1].price:
+                money -= shop_panels[1].price
                 spaceship.speed += 2
-            elif station_btn_back.collidepoint(mouse_pos):
-                state = STATE4
+            elif shop_panels[0].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[0].price:
+                ammo += 20
+                money -= shop_panels[0].price
+            elif shop_panels[2].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[2].price:
+                spaceship.hp = spaceship.hp_max
+                money -= shop_panels[2].price
+            elif btn_exit.collidepoint(mouse_pos):
+                state = STATE1
+                background.speed = background.orig_speed
 
     if not flag_play:
         break
@@ -430,7 +431,7 @@ while flag_play:
                 cargo_reward = 0
                 cargo_weight = 0
                 selected_cargo = None
-                if deliveries % 5 == 0:
+                if deliveries % 1 == 0:
                     state = STATE3
                     transition_timer = 0
 
@@ -489,6 +490,8 @@ while flag_play:
         exit_btn(screen, btn_exit, "Exit", font_ui)
         for panel in shop_panels:
             panel.draw(screen, money)
+            panel.update()
+            spaceship_shop.draw(screen)
 
     elif state == STATE4:
         screen.fill((10, 10, 30))
@@ -498,7 +501,7 @@ while flag_play:
         screen.fill((12, 12, 35))
         draw_cargo_menu(screen, font1, font_ui, cargo_cards, cargo_offers, btn_back_route)
 
-    elif state == STATE6:
+    elif state == STATE2:
         screen.fill((12, 12, 35))
         draw_station_menu(screen, font1, font_ui)
 
