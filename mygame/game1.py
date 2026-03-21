@@ -68,6 +68,26 @@ class Planet(pg.sprite.Sprite):
             return True
         return False
 
+
+class StationPlanet(pg.sprite.Sprite):
+    def __init__(self):
+        pg.sprite.Sprite.__init__(self)
+        self.image = pg.image.load(r'imagesgame/planet.png').convert_alpha()
+        self.image = pg.transform.scale(self.image, (750, 750))
+
+        self.rect = self.image.get_rect()
+        self.speed = 2
+        self.rect.x = WIDTH + 100
+        self.rect.y = 75
+
+    def move(self):
+        self.rect.x -= self.speed
+        if self.rect.right < 0:
+            self.kill()
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
 class CargoOffer:
     def __init__(self, name, reward, weight, color):
         self.name = name
@@ -213,13 +233,17 @@ def draw_route_menu(screen, font_big, font_small, left_rect, right_rect):
     screen.blit(title, (WIDTH // 2 - title.get_width() // 2, 80))
 
     pg.draw.ellipse(screen, (80, 170, 255), left_rect)
-    pg.draw.ellipse(screen, (255, 170, 80), right_rect)
+    pg.draw.ellipse(screen, (183, 126, 61), right_rect)
+    pg.draw.line(screen, (255, 0, 0), (800, 250), (1000, 500), 5)
+    pg.draw.line(screen, (255, 0, 0),(1000, 250),(800, 500), 5)
 
     txt1 = font_small.render("Station", True, WHITE)
     txt2 = font_small.render("Cargo Terminal", True, WHITE)
+    txt3 = font_small.render("Not Working Yet", True, WHITE)
 
     screen.blit(txt1, (left_rect.centerx - txt1.get_width() // 2, left_rect.bottom + 20))
     screen.blit(txt2, (right_rect.centerx - txt2.get_width() // 2, right_rect.bottom + 20))
+    screen.blit(txt3, (right_rect.centerx - txt2.get_width() // 2, right_rect.bottom - 250))
 
 def draw_cargo_menu(screen, font_big, font_small, cards, offers, back_btn):
     title = font_big.render("Cargo Terminal", True, WHITE)
@@ -277,6 +301,7 @@ spaceship = SpaceShip()
 spaceship_shop = SpaceShip(size=(700, 700), angle=180)
 planets = pg.sprite.Group()
 bullets = pg.sprite.Group()
+stations = pg.sprite.Group()
 ammo = 20
 money = 5000
 deliveries = 0
@@ -287,7 +312,7 @@ shop_panels = [
     ShopPanel(340, 'Engine Boost', 200, 'increase speed'),
     ShopPanel(480, 'Repair', 100, 'Restore ur hp')
 ]
-state = STATE2  # fly - лететь; shop - остановка, магазин; ENTER - Вход в магазин
+state = STATE4  # fly - лететь; shop - остановка, магазин; ENTER - Вход в магазин
 msg_timer = 0
 btn_repair = pg.Rect(WIDTH//2 - 200, 350,   400, 60)
 btn_speed = pg.Rect(WIDTH//2 - 200, 450, 400, 60)
@@ -318,6 +343,9 @@ spawn_asteroid = pg.USEREVENT + 1
 SPAWN_PLANET = pg.USEREVENT + 2
 # pg.time.set_timer(spawn_asteroid, 600)
 # pg.time.set_timer(SPAWN_PLANET, 3500)
+
+station_timer = 0
+station_cooldown = random.randint(600, 1000)
 planet_timer = 0
 planet_cooldown = random.randint(140, 180)
 asteroid_timer = 0
@@ -330,6 +358,7 @@ while flag_play:
     if state == STATE1:
         planet_timer += 1
         asteroid_timer += 1
+        station_timer += 1
     if planet_timer >= planet_cooldown:
         planets.add(Planet())
         planet_timer = 0
@@ -338,6 +367,10 @@ while flag_play:
         asteroids.add(Asteroids())
         asteroid_timer = 0
         asteroid_cooldown = random.randint(20, 60)
+    if station_timer >= station_cooldown:
+        stations.add(StationPlanet())
+        station_timer = 0
+        station_cooldown = random.randint(600, 1000)
     # цикл обработки событий:
     for event in pg.event.get():
         if event.type == pg.QUIT:
@@ -352,6 +385,12 @@ while flag_play:
             if event.key == pg.K_SPACE and ammo > 0:
                 bullets.add(Bullet())
                 ammo -= 1
+            if event.key == pg.K_e and state == STATE1:
+                for station in stations:
+                    if spaceship.rect.colliderect(station.rect):
+                        state = STATE3
+                        transition_timer = 0
+                        station.kill()
         if event.type == pg.MOUSEBUTTONDOWN and state == STATE4:
             mouse_pos = pg.mouse.get_pos()
             if route_left_rect.collidepoint(mouse_pos):
@@ -410,6 +449,8 @@ while flag_play:
         if keys[pg.K_DOWN]:
             spaceship.move(dy=1)
 
+        for station in stations:
+            station.move()
         for asteroid in asteroids:
             asteroid.move()
         for planet in planets:
@@ -431,9 +472,7 @@ while flag_play:
                 cargo_reward = 0
                 cargo_weight = 0
                 selected_cargo = None
-                if deliveries % 1 == 0:
-                    state = STATE3
-                    transition_timer = 0
+
 
         # collisions
         if pg.sprite.spritecollideany(spaceship, asteroids, collided=pg.sprite.collide_mask):
@@ -452,6 +491,11 @@ while flag_play:
 
     if state == STATE1:
         background.draw(screen)
+        for station in stations:
+            station.draw(screen)
+            if spaceship.rect.colliderect(station.rect):
+                text1 = font1.render("Press 'E' to ENTER", True, WHITE)
+                screen.blit(text1, (WIDTH // 2 - text1.get_width() // 2, HEIGHT - 150))
         planets.draw(screen)
         asteroids.draw(screen)
         spaceship.draw(screen)
