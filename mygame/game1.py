@@ -303,7 +303,7 @@ planets = pg.sprite.Group()
 bullets = pg.sprite.Group()
 stations = pg.sprite.Group()
 ammo = 20
-money = 5000
+money = 500
 deliveries = 0
 damage_cooldown = 0
 background.orig_speed = background.speed
@@ -312,7 +312,7 @@ shop_panels = [
     ShopPanel(340, 'Engine Boost', 200, 'increase speed'),
     ShopPanel(480, 'Repair', 100, 'Restore ur hp')
 ]
-state = STATE4  # fly - лететь; shop - остановка, магазин; ENTER - Вход в магазин
+state = STATE1  # fly - лететь; shop - остановка, магазин; ENTER - Вход в магазин
 msg_timer = 0
 btn_repair = pg.Rect(WIDTH//2 - 200, 350,   400, 60)
 btn_speed = pg.Rect(WIDTH//2 - 200, 450, 400, 60)
