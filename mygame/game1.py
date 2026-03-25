@@ -166,7 +166,7 @@ class Background:
         screen.blit(self.image, (self.x2, 0))
         screen.blit(self.image, (self.x3, 0))
 
-def draw_ui(screen, money, deliveries):
+def draw_ui(screen, money, deliveries, ammo):
     font = pg.font.Font(None, 48)
 
     money_text = font.render(f"Money: {money}$", True, WHITE)
@@ -174,6 +174,9 @@ def draw_ui(screen, money, deliveries):
 
     deliveries_text = font.render(f"Deliveries: {deliveries}", True, WHITE)
     screen.blit(deliveries_text, (WIDTH - 300, 50))
+
+    ammo_text = font.render(f"Ammo: {ammo}", True, WHITE)
+    screen.blit(ammo_text, (WIDTH - 300, 80))
 
 class ShopPanel:
     def __init__(self, y_pos, title, price, description):
@@ -213,8 +216,19 @@ class ShopPanel:
         desc_surf = self.font_description.render(self.description, True, GRAY)
         screen.blit(desc_surf, (self.rect.x + 20, self.rect.y + 55))
 
+        mouse_pos = pg.mouse.get_pos()
+        hover = self.buy_button_rect.collidepoint(mouse_pos)
+
         can_buy = money >= self.price
-        btn_color = (40, 180, 40) if can_buy else (150, 40, 40)
+
+        if can_buy:
+            btn_color = (40, 180, 40)
+            if hover:
+                btn_color = (20, 120, 20)  # темнее при наведении
+        else:
+            btn_color = (150, 40, 40)
+            if hover:
+                btn_color = (100, 20, 20)
         pg.draw.rect(screen, btn_color, self.buy_button_rect, 0, 8)
         buy_text = self.font_title.render("Buy", True, WHITE)
         screen.blit(buy_text, (self.buy_button_rect.centerx - buy_text.get_width() // 2, self.buy_button_rect.centery - buy_text.get_height() // 2))
@@ -319,7 +333,7 @@ btn_speed = pg.Rect(WIDTH//2 - 200, 450, 400, 60)
 btn_exit = pg.Rect(WIDTH//2 + 100, 700, 500, 100)
 font_ui = pg.font.Font(None, 36)
 #Cargo - выбор груза
-cargo_offers = generate_cargo
+cargo_offers = generate_cargo()
 selected_cargo = None
 cargo_reward = 0
 cargo_weight = 0
@@ -383,7 +397,9 @@ while flag_play:
             planets.add(Planet())
         if event.type == pg.KEYDOWN:
             if event.key == pg.K_SPACE and ammo > 0:
-                bullets.add(Bullet())
+                bullet = Bullet()
+                bullet.rect.center = spaceship.rect.center
+                bullets.add(bullet)
                 ammo -= 1
             if event.key == pg.K_e and state == STATE1:
                 for station in stations:
@@ -391,40 +407,41 @@ while flag_play:
                         state = STATE3
                         transition_timer = 0
                         station.kill()
-        if event.type == pg.MOUSEBUTTONDOWN and state == STATE4:
-            mouse_pos = pg.mouse.get_pos()
-            if route_left_rect.collidepoint(mouse_pos):
-                state = STATE2
-            elif route_right_rect.collidepoint(mouse_pos):
-                cargo_offers = generate_cargo()
-                state = STATE5
-        if event.type == pg.MOUSEBUTTONDOWN and state == STATE5:
-            mouse_pos = pg.mouse.get_pos()
-            for rect, cargo in zip(cargo_cards, cargo_offers):
-                if rect.collidepoint(mouse_pos):
-                    selected_cargo = cargo
-                    cargo_reward = cargo.reward
-                    cargo_weight = cargo.weight
+        if event.type == pg.MOUSEBUTTONDOWN:
+            if state == STATE4:
+                mouse_pos = pg.mouse.get_pos()
+                if route_left_rect.collidepoint(mouse_pos):
+                    state = STATE2
+                elif route_right_rect.collidepoint(mouse_pos):
+                    cargo_offers = generate_cargo()
+                    state = STATE5
+            if state == STATE5:
+                mouse_pos = pg.mouse.get_pos()
+                for rect, cargo in zip(cargo_cards, cargo_offers):
+                    if rect.collidepoint(mouse_pos):
+                        selected_cargo = cargo
+                        cargo_reward = cargo.reward
+                        cargo_weight = cargo.weight
+                        state = STATE1
+                        background.speed = background.orig_speed
+                        asteroid_timer = 0
+                        planet_timer = 0
+                if btn_back_route.collidepoint(mouse_pos):
+                    state = STATE4
+            if state == STATE2:
+                mouse_pos = pg.mouse.get_pos()
+                if shop_panels[1].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[1].price:
+                    money -= shop_panels[1].price
+                    spaceship.speed += 2
+                elif shop_panels[0].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[0].price:
+                    ammo += 20
+                    money -= shop_panels[0].price
+                elif shop_panels[2].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[2].price:
+                    spaceship.hp = spaceship.hp_max
+                    money -= shop_panels[2].price
+                elif btn_exit.collidepoint(mouse_pos):
                     state = STATE1
                     background.speed = background.orig_speed
-                    asteroid_timer = 0
-                    planet_timer = 0
-            if btn_back_route.collidepoint(mouse_pos):
-                state = STATE4
-        if event.type == pg.MOUSEBUTTONDOWN and state == STATE2:
-            mouse_pos = pg.mouse.get_pos()
-            if shop_panels[1].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[1].price:
-                money -= shop_panels[1].price
-                spaceship.speed += 2
-            elif shop_panels[0].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[0].price:
-                ammo += 20
-                money -= shop_panels[0].price
-            elif shop_panels[2].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[2].price:
-                spaceship.hp = spaceship.hp_max
-                money -= shop_panels[2].price
-            elif btn_exit.collidepoint(mouse_pos):
-                state = STATE1
-                background.speed = background.orig_speed
 
     if not flag_play:
         break
@@ -439,11 +456,11 @@ while flag_play:
     # перерисовка экрана:
     # ...
 
-    # Отрисовка
+    # update
     if state == STATE1:
-        # move starship and background
         background.move()
         keys = pg.key.get_pressed()
+        bullets.update()
         if keys[pg.K_UP]:
             spaceship.move(dy=-1)
         if keys[pg.K_DOWN]:
@@ -472,7 +489,21 @@ while flag_play:
                 cargo_reward = 0
                 cargo_weight = 0
                 selected_cargo = None
-
+        # DRAW
+        screen.fill(WHITE)
+        background.draw(screen)
+        for station in stations:
+            station.draw(screen)
+            if spaceship.rect.colliderect(station.rect):
+                text1 = font1.render("Press 'E' to ENTER", True, WHITE)
+                screen.blit(text1, (WIDTH // 2 - text1.get_width() // 2, HEIGHT - 150))
+        planets.draw(screen)
+        asteroids.draw(screen)
+        spaceship.draw(screen)
+        bullets.draw(screen)
+        if msg_timer > 0:
+            msg_timer -= 1
+            screen.blit(text, (300, 300))
 
         # collisions
         if pg.sprite.spritecollideany(spaceship, asteroids, collided=pg.sprite.collide_mask):
@@ -484,26 +515,12 @@ while flag_play:
         for hit in hits:
             money += 5
     # отрисовка
-    screen.fill(WHITE)
 
 
 
 
-    if state == STATE1:
-        background.draw(screen)
-        for station in stations:
-            station.draw(screen)
-            if spaceship.rect.colliderect(station.rect):
-                text1 = font1.render("Press 'E' to ENTER", True, WHITE)
-                screen.blit(text1, (WIDTH // 2 - text1.get_width() // 2, HEIGHT - 150))
-        planets.draw(screen)
-        asteroids.draw(screen)
-        spaceship.draw(screen)
-        if msg_timer > 0:
-            msg_timer -= 1
-            screen.blit(text, (300, 300))
-
-    elif state == STATE3:
+    if state == STATE3:
+        screen.fill(WHITE)
         transition_timer += 1
         background.speed *= 0.97
         background.move()
@@ -545,11 +562,11 @@ while flag_play:
         screen.fill((12, 12, 35))
         draw_cargo_menu(screen, font1, font_ui, cargo_cards, cargo_offers, btn_back_route)
 
-    elif state == STATE2:
-        screen.fill((12, 12, 35))
-        draw_station_menu(screen, font1, font_ui)
+    # elif state == STATE2:
+    #     screen.fill((12, 12, 35))
+    #     draw_station_menu(screen, font1, font_ui)
 
     # UI
     draw_hp(screen, spaceship.hp, spaceship.hp_max)
-    draw_ui(screen, money, deliveries)
+    draw_ui(screen, money, deliveries, ammo)
     pg.display.update()  # обновление экрана, чтобы отобразить новую перерисовку
