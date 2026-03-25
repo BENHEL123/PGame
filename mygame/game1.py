@@ -19,13 +19,14 @@ STATE5 = "CARGO"
 
 
 class SpaceShip(pg.sprite.Sprite):
-    def __init__(self, size=(150,150), angle=90):
+    def __init__(self, size=(150,150), angle=90, posx=0, posy=0):
         self.hp_max = 20
         self.hp = self.hp_max
         self.image = pg.image.load(r'imagesgame/spaceship.png').convert_alpha()
         self.image = pg.transform.scale(self.image, size)
         self.image = pg.transform.rotate(self.image, angle)
         self.rect = self.image.get_rect()
+        self.rect.topleft = (posx, posy)
         self.mask = pg.mask.from_surface(self.image)
         self.speed = 5
 
@@ -234,7 +235,11 @@ class ShopPanel:
         screen.blit(buy_text, (self.buy_button_rect.centerx - buy_text.get_width() // 2, self.buy_button_rect.centery - buy_text.get_height() // 2))
 
 def exit_btn(screen, rect, text, font):
-    pg.draw.rect(screen, (0,204,204), rect, 0, 15)
+    mouse_pos = pg.mouse.get_pos()
+    hover = rect.collidepoint(mouse_pos)
+    btn_color = (0, 144, 144) if hover else (0, 204, 204)
+
+    pg.draw.rect(screen, btn_color, rect, 0, 15)
     pg.draw.rect(screen, (0, 153, 153), rect, 2, 15)
 
     txt = font.render(text, True, (255, 255, 255))
@@ -312,7 +317,7 @@ font1 = pg.font.Font(None, 96)
 asteroids = pg.sprite.Group()
 spaceship = SpaceShip()
 
-spaceship_shop = SpaceShip(size=(700, 700), angle=180)
+spaceship_shop = SpaceShip(size=(700, 700), angle=180, posx=0, posy=75)
 planets = pg.sprite.Group()
 bullets = pg.sprite.Group()
 stations = pg.sprite.Group()
@@ -326,7 +331,7 @@ shop_panels = [
     ShopPanel(340, 'Engine Boost', 200, 'increase speed'),
     ShopPanel(480, 'Repair', 100, 'Restore ur hp')
 ]
-state = STATE1  # fly - лететь; shop - остановка, магазин; ENTER - Вход в магазин
+state = STATE2  # fly - лететь; shop - остановка, магазин; ENTER - Вход в магазин
 msg_timer = 0
 btn_repair = pg.Rect(WIDTH//2 - 200, 350,   400, 60)
 btn_speed = pg.Rect(WIDTH//2 - 200, 450, 400, 60)
@@ -562,9 +567,6 @@ while flag_play:
         screen.fill((12, 12, 35))
         draw_cargo_menu(screen, font1, font_ui, cargo_cards, cargo_offers, btn_back_route)
 
-    # elif state == STATE2:
-    #     screen.fill((12, 12, 35))
-    #     draw_station_menu(screen, font1, font_ui)
 
     # UI
     draw_hp(screen, spaceship.hp, spaceship.hp_max)
