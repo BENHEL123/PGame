@@ -1,5 +1,6 @@
 import json
 import math
+import os
 import random
 
 import pygame as pg
@@ -22,6 +23,16 @@ STATE_ENDING = "ENDING"
 ROOM_THEATER = "THEATER"
 ROOM_FUTURE = "FUTURE"
 ROOM_LIBRARY = "LIBRARY"
+
+MUSIC_DEFAULT = "music/song.mp3"
+MUSIC = {
+    "menu": "music/menu.mp3",
+    "crossroad": "music/crossroad.mp3",
+    "theater": "music/theater.mp3",
+    "future": "music/future.mp3",
+    "library": "music/library.mp3",
+    "ending": "music/ending.mp3",
+}
 
 ROOM_LAYOUT = {
     "crossroad": {
@@ -151,6 +162,38 @@ def load_events():
     return []
 
 
+def play_music(track_name):
+    path = MUSIC.get(track_name, MUSIC_DEFAULT)
+    if not os.path.exists(path):
+        path = MUSIC_DEFAULT
+    if not os.path.exists(path):
+        return
+
+    try:
+        pg.mixer.music.load(path)
+        pg.mixer.music.set_volume(0.45)
+        pg.mixer.music.play(-1)
+    except Exception:
+        pass
+
+
+def get_music_track(game_data):
+    if game_data["state"] == STATE_MENU:
+        return "menu"
+    if game_data["state"] == STATE_CROSSROAD:
+        return "crossroad"
+    if game_data["state"] == STATE_ENDING:
+        return "ending"
+    if game_data["state"] in [STATE_ROOM, STATE_DIALOGUE, STATE_PAUSE]:
+        if game_data["current_room"] == ROOM_THEATER:
+            return "theater"
+        if game_data["current_room"] == ROOM_FUTURE:
+            return "future"
+        if game_data["current_room"] == ROOM_LIBRARY:
+            return "library"
+    return "menu"
+
+
 def get_room_rects(room_id):
     layout = ROOM_LAYOUT.get(room_id, ROOM_LAYOUT[ROOM_LIBRARY])
     interact = layout["interact"]
@@ -230,7 +273,6 @@ def reset_run(player_rect):
         "selected_choice": 0,
         "last_room": None,
         "ending_text": "",
-        "debug": False,
     }
     player_rect.center = (WIDTH // 2, 930)
     return data
@@ -269,13 +311,9 @@ def get_ending_text(stats):
 
 
 def draw_hud(screen, font, game_data):
-    stats = game_data["stats"]
     text = "Круг: " + str(game_data["loop_count"]) + "/" + str(MAX_LOOPS)
-    text += "   Humanity: " + str(stats["humanity"])
-    text += "   Logic: " + str(stats["logic"])
-    text += "   Entropy: " + str(stats["entropy"])
 
-    panel = pg.Rect(12, 10, 560, 40)
+    panel = pg.Rect(12, 10, 140, 40)
     pg.draw.rect(screen, (10, 10, 10), panel, 0, 8)
     pg.draw.rect(screen, (150, 150, 165), panel, 2, 8)
     surf = font.render(text, True, (245, 245, 245))
@@ -300,11 +338,6 @@ def draw_crossroad(screen, assets, clouds, player_image, player_rect, font_small
     fountain_pos = cross["fountain_pos"]
     screen.blit(fountain, (fountain_pos[0], fountain_pos[1]))
 
-    zones = assets["direction_zones"]
-    pg.draw.rect(screen, (190, 190, 190), zones["left"], 2)
-    pg.draw.rect(screen, (190, 190, 190), zones["right"], 2)
-    pg.draw.rect(screen, (190, 190, 190), zones["forward"], 2)
-
     left_text = font_small.render("Налево", True, (240, 240, 240))
     right_text = font_small.render("Направо", True, (240, 240, 240))
     forward_text = font_small.render("Прямо", True, (240, 240, 240))
@@ -321,27 +354,6 @@ def draw_crossroad(screen, assets, clouds, player_image, player_rect, font_small
 
     draw_hud(screen, font_small, game_data)
     draw_text_center(screen, "Иди по следам в туман", font_small, (240, 240, 240), 985)
-
-
-def draw_debug_overlay(screen, font, game_data, player_rect):
-    room = game_data.get("current_room")
-    mouse_x, mouse_y = pg.mouse.get_pos()
-    info1 = "DEBUG ON | F1 toggle | 1/2/3 room | IJKL move interact | TFGH move door"
-    info2 = "UO/JL resize interact | RF/VB resize door | P print layout"
-    info3 = "Mouse: " + str(mouse_x) + "," + str(mouse_y) + " | Player: " + str(player_rect.x) + "," + str(player_rect.y)
-
-    panel = pg.Surface((WIDTH, 86), pg.SRCALPHA)
-    panel.fill((0, 0, 0, 170))
-    screen.blit(panel, (0, HEIGHT - 86))
-    screen.blit(font.render(info1, True, (255, 255, 180)), (10, HEIGHT - 82))
-    screen.blit(font.render(info2, True, (255, 255, 180)), (10, HEIGHT - 56))
-    screen.blit(font.render(info3, True, (220, 220, 220)), (10, HEIGHT - 30))
-
-    if room in [ROOM_THEATER, ROOM_FUTURE, ROOM_LIBRARY]:
-        rects = get_room_rects(room)
-        pg.draw.rect(screen, (20, 230, 20), rects["interact"], 2)
-        pg.draw.rect(screen, (250, 70, 70), rects["door"], 2)
-
 
 def draw_theater_room(screen, assets, game_data, tick):
     layout = ROOM_LAYOUT[ROOM_THEATER]
@@ -435,7 +447,6 @@ def draw_room(screen, assets, game_data, player_image, player_rect, font_small, 
     door_rect = room_rects["door"]
 
     if not game_data["door_open"]:
-        pg.draw.rect(screen, (220, 220, 180), interact_rect, 2)
         if player_rect.colliderect(interact_rect):
             prompt = font_small.render("Нажми E", True, (255, 255, 255))
             screen.blit(prompt, (interact_rect.x + 48, interact_rect.y - 28))
@@ -449,10 +460,11 @@ def draw_room(screen, assets, game_data, player_image, player_rect, font_small, 
     draw_hud(screen, font_small, game_data)
 
 
-def draw_dialogue(screen, game_data, font_title, font_text):
+def draw_dialogue(screen, game_data, font_title, font_text, button_image):
     panel = pg.Rect(120, 160, 784, 560)
     pg.draw.rect(screen, (18, 18, 25), panel, 0, 12)
     pg.draw.rect(screen, (170, 170, 185), panel, 2, 12)
+    font_button = pg.font.Font(None, 31)
 
     event = game_data["current_event"]
     if not event:
@@ -472,13 +484,27 @@ def draw_dialogue(screen, game_data, font_title, font_text):
 
     choices = event.get("choices", [])
     for i, choice in enumerate(choices):
-        rect = pg.Rect(panel.x + 25, panel.y + 360 + i * 74, panel.width - 50, 56)
-        color = (90, 100, 135) if i == game_data["selected_choice"] else (46, 48, 60)
-        pg.draw.rect(screen, color, rect, 0, 8)
-        pg.draw.rect(screen, (200, 200, 210), rect, 2, 8)
+        button_width = 340
+        button_height = 96
+        if i == 0:
+            rect = pg.Rect(panel.x + 35, panel.y + 355, button_width, button_height)
+        else:
+            rect = pg.Rect(panel.right - 35 - button_width, panel.y + 355, button_width, button_height)
+
+        button = pg.transform.scale(button_image, (rect.width, rect.height))
+        if i == game_data["selected_choice"]:
+            glow_rect = pg.Rect(rect.x - 6, rect.y - 6, rect.width + 12, rect.height + 12)
+            pg.draw.rect(screen, (215, 215, 180), glow_rect, 3, 10)
+        screen.blit(button, rect)
+
         text = str(i + 1) + ". " + choice.get("text", "...")
-        surf = font_text.render(text, True, (245, 245, 245))
-        screen.blit(surf, (rect.x + 12, rect.y + 14))
+        button_lines = wrap_text(text, font_button, rect.width - 42)
+        line_height = 28
+        text_y = rect.centery - (len(button_lines) * line_height) // 2
+        for line in button_lines:
+            surf = font_button.render(line, True, (245, 245, 245))
+            screen.blit(surf, (rect.centerx - surf.get_width() // 2, text_y))
+            text_y += line_height
 
     hint = font_text.render("1/2 или стрелки + Enter", True, (190, 190, 206))
     screen.blit(hint, (panel.x + 25, panel.bottom - 36))
@@ -543,22 +569,6 @@ def try_enter_door(game_data, player_rect):
         player_rect.center = (WIDTH // 2, 930)
 
 
-def adjust_layout_rect(room_id, key, dx, dy, dw=0, dh=0):
-    rect_data = ROOM_LAYOUT[room_id][key]
-    rect_data[0] += dx
-    rect_data[1] += dy
-    rect_data[2] = max(20, rect_data[2] + dw)
-    rect_data[3] = max(20, rect_data[3] + dh)
-
-
-def print_layout_snapshot(room_id):
-    layout = ROOM_LAYOUT[room_id]
-    print("==== LAYOUT", room_id, "====")
-    print("interact =", layout["interact"])
-    print("door_rect =", layout["door_rect"])
-    print("player_spawn =", layout["player_spawn"])
-
-
 def main():
     pg.init()
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -571,6 +581,8 @@ def main():
     font_big = pg.font.Font(None, 82)
 
     assets = {
+        "button": load_image(r"images/Button.png"),
+
         "cross_bg": load_image(r"images/crossroad/Каменный фон.png", (WIDTH, HEIGHT)),
         "cross_paths": load_image(r"images/crossroad/Перекрёсток.png", (WIDTH, HEIGHT)),
         "cross_steps": load_image(r"images/crossroad/Стопы.png", (WIDTH, HEIGHT)),
@@ -635,6 +647,7 @@ def main():
 
     events = load_events()
 
+    current_music = None
     tick = 0
     flag_play = True
     while flag_play:
@@ -647,55 +660,12 @@ def main():
                 break
 
             if event.type == pg.KEYDOWN:
-                if event.key == pg.K_F1:
-                    game_data["debug"] = not game_data["debug"]
-
                 if event.key == pg.K_ESCAPE:
                     if game_data["state"] == STATE_PAUSE:
                         game_data["state"] = game_data["prev_state"]
                     elif game_data["state"] in [STATE_CROSSROAD, STATE_ROOM, STATE_DIALOGUE]:
                         game_data["prev_state"] = game_data["state"]
                         game_data["state"] = STATE_PAUSE
-
-                if game_data["debug"] and event.key == pg.K_1:
-                    start_room(game_data, events, ROOM_THEATER, player_rect)
-                elif game_data["debug"] and event.key == pg.K_2:
-                    start_room(game_data, events, ROOM_FUTURE, player_rect)
-                elif game_data["debug"] and event.key == pg.K_3:
-                    start_room(game_data, events, ROOM_LIBRARY, player_rect)
-
-                if game_data["debug"] and game_data["state"] in [STATE_ROOM, STATE_DIALOGUE]:
-                    room_id = game_data["current_room"]
-                    if event.key == pg.K_i:
-                        adjust_layout_rect(room_id, "interact", 0, -4)
-                    elif event.key == pg.K_k:
-                        adjust_layout_rect(room_id, "interact", 0, 4)
-                    elif event.key == pg.K_j:
-                        adjust_layout_rect(room_id, "interact", -4, 0)
-                    elif event.key == pg.K_l:
-                        adjust_layout_rect(room_id, "interact", 4, 0)
-                    elif event.key == pg.K_u:
-                        adjust_layout_rect(room_id, "interact", 0, 0, -4, 0)
-                    elif event.key == pg.K_o:
-                        adjust_layout_rect(room_id, "interact", 0, 0, 4, 0)
-
-                    elif event.key == pg.K_t:
-                        adjust_layout_rect(room_id, "door_rect", 0, -4)
-                    elif event.key == pg.K_g:
-                        adjust_layout_rect(room_id, "door_rect", 0, 4)
-                    elif event.key == pg.K_f:
-                        adjust_layout_rect(room_id, "door_rect", -4, 0)
-                    elif event.key == pg.K_h:
-                        adjust_layout_rect(room_id, "door_rect", 4, 0)
-                    elif event.key == pg.K_r:
-                        adjust_layout_rect(room_id, "door_rect", 0, 0, -4, 0)
-                    elif event.key == pg.K_v:
-                        adjust_layout_rect(room_id, "door_rect", 0, 0, 4, 0)
-                    elif event.key == pg.K_b:
-                        adjust_layout_rect(room_id, "door_rect", 0, 0, 0, 4)
-
-                    elif event.key == pg.K_p:
-                        print_layout_snapshot(room_id)
 
                 if game_data["state"] == STATE_MENU:
                     if event.key == pg.K_RETURN:
@@ -746,6 +716,11 @@ def main():
                 game_data["room_anim"] += 1
             try_enter_door(game_data, player_rect)
 
+        next_music = get_music_track(game_data)
+        if next_music != current_music:
+            play_music(next_music)
+            current_music = next_music
+
         if game_data["state"] == STATE_MENU:
             screen.fill((12, 13, 20))
             draw_text_center(screen, TITLE, font_big, (245, 245, 250), 250)
@@ -765,7 +740,7 @@ def main():
             overlay = pg.Surface((WIDTH, HEIGHT), pg.SRCALPHA)
             overlay.fill((0, 0, 0, 150))
             screen.blit(overlay, (0, 0))
-            draw_dialogue(screen, game_data, font_title, font_text)
+            draw_dialogue(screen, game_data, font_title, font_text, assets["button"])
             draw_hud(screen, font_small, game_data)
 
         elif game_data["state"] == STATE_PAUSE:
@@ -802,9 +777,6 @@ def main():
             )
             draw_text_center(screen, stat_text, font_small, (200, 200, 210), 690)
             draw_text_center(screen, "R - заново    Q - выход", font_title, (220, 220, 230), 810)
-
-        if game_data.get("debug"):
-            draw_debug_overlay(screen, font_small, game_data, player_rect)
 
         pg.display.update()
 
