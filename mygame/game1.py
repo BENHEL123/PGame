@@ -37,6 +37,10 @@ class SpaceShip(pg.sprite.Sprite):
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
+    
+    def checker(self):
+        if self.hp == self.hp_max:
+            Canbuy = False
 
 class Planet(pg.sprite.Sprite):
     def __init__(self):
@@ -435,7 +439,7 @@ while flag_play:
                     state = STATE4
             if state == STATE2:
                 mouse_pos = pg.mouse.get_pos()
-                if shop_panels[1].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[1].price:
+                if shop_panels[1].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[1].price and Canbuy:
                     money -= shop_panels[1].price
                     spaceship.speed += 2
                 elif shop_panels[0].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[0].price:
