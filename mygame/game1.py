@@ -37,10 +37,13 @@ class SpaceShip(pg.sprite.Sprite):
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
-    
-    def checker(self):
-        if self.hp == self.hp_max:
-            Canbuy = False
+
+def checker():
+    global Canbuy
+    if spaceship.hp == spaceship.hp_max:
+        Canbuy = False
+    else:
+        Canbuy = True
 
 class Planet(pg.sprite.Sprite):
     def __init__(self):
@@ -328,6 +331,7 @@ stations = pg.sprite.Group()
 ammo = 20
 money = 500
 deliveries = 0
+Canbuy = None
 damage_cooldown = 0
 background.orig_speed = background.speed
 shop_panels = [
@@ -430,7 +434,7 @@ while flag_play:
                     if rect.collidepoint(mouse_pos):
                         selected_cargo = cargo
                         cargo_reward = cargo.reward
-                        cargo_weight = cargo.weight
+                        cargo_weight = cargo.weАight
                         state = STATE1
                         background.speed = background.orig_speed
                         asteroid_timer = 0
@@ -439,7 +443,7 @@ while flag_play:
                     state = STATE4
             if state == STATE2:
                 mouse_pos = pg.mouse.get_pos()
-                if shop_panels[1].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[1].price and Canbuy:
+                if shop_panels[1].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[1].price:
                     money -= shop_panels[1].price
                     spaceship.speed += 2
                 elif shop_panels[0].buy_button_rect.collidepoint(mouse_pos) and money >= shop_panels[0].price:
@@ -575,4 +579,5 @@ while flag_play:
     # UI
     draw_hp(screen, spaceship.hp, spaceship.hp_max)
     draw_ui(screen, money, deliveries, ammo)
+    checker()
     pg.display.update()  # обновление экрана, чтобы отобразить новую перерисовку
